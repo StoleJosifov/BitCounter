@@ -8,6 +8,16 @@ namespace BitCounter.Services
 {
     public sealed class DataProviderService : IDataProviderService
     {
+        public List<CounterModel> GetCounterDataFromFolder(string folderPath)
+        {
+            var filesList = Directory.GetFiles(folderPath,  "cnts_*");
+            var allData = new List<CounterModel>();
+            foreach (var file in filesList)
+            {
+                allData.AddRange(GetCounterData(file));
+            }
+            return allData;
+        }
         public List<CounterModel> GetCounterData(string fileFullPath)
         {
             var rawJsonString = File.ReadAllText(fileFullPath);

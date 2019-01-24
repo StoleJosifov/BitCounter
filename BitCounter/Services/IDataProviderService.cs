@@ -1,4 +1,5 @@
-﻿using BitCounter.Models;
+﻿using System;
+using BitCounter.Models;
 using System.Collections.Generic;
 
 namespace BitCounter.Services
@@ -7,5 +8,6 @@ namespace BitCounter.Services
     {
         string GetRandomByteAsString();
         List<CounterModel> GetCounterData(string fileFullPath);
+        List<CounterModel> GetCounterDataFromFolder(string folderPath);
     }
 }

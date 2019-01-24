@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BitCounter.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace BitCounter.Controllers
@@ -13,11 +14,13 @@ namespace BitCounter.Controllers
     {
         private readonly IHostedService counterService;
         private readonly IDataProviderService dataProviderService;
+        private readonly IConfiguration configuration;
 
-        public ApiController(IHostedService counterService, IDataProviderService dataProviderService)
+        public ApiController(IHostedService counterService, IDataProviderService dataProviderService, IConfiguration configuration)
         {
             this.counterService = counterService;
             this.dataProviderService = dataProviderService;
+            this.configuration = configuration;
         }
 
         [HttpGet("[action]")]
@@ -29,15 +32,17 @@ namespace BitCounter.Controllers
         }
 
         [HttpGet("[action]")]
-        public async Task StopCounter()
+        public async Task<IActionResult> StopCounter()
         {
             await counterService.StopAsync(new CancellationToken(true));
+            return Ok("Counter Service Stopped");
         }
 
         [HttpGet("[action]")]
-        public IActionResult ShowDataForDate(DateTime date)
+        public IActionResult ShowData()
         {
-            var result = dataProviderService.GetCounterData("C:\\Users\\MeanMachine\\Desktop\\cnts_01-24-2019.json");
+
+            var result = dataProviderService.GetCounterDataFromFolder(configuration.GetSection("SaveFolder").Value);
             return Ok(result);
         }
     }
