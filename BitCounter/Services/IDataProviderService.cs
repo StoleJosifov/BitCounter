@@ -6,7 +6,8 @@ namespace BitCounter.Services
 {
     public interface IDataProviderService
     {
-        string GetRandomByteAsString();
+        string GetByteAsString(int num);
+        int GetRandomByte();
         List<CounterModel> GetCounterData(string fileFullPath);
         List<CounterModel> GetCounterDataFromFolder(string folderPath);
     }

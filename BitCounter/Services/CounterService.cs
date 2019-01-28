@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BitCounter.Services
 {
@@ -16,19 +17,24 @@ namespace BitCounter.Services
     {
         private readonly ILogger<CounterService> logger;
         private readonly IDataProviderService dataProviderService;
+        private readonly IOptions<SaveSettings> settings;
 
-        private readonly string filePath;
         private readonly int saveFileIntervalSeconds;
         private List<int> previousCountersList;
         private Timer counterTimer;
+        private SaveSettings saveSettings;
 
 
-        public CounterService(IConfiguration configuration, IDataProviderService dataProviderService, ILogger<CounterService> logger)
+        public CounterService(
+            IDataProviderService dataProviderService,
+            IOptions<SaveSettings> settings,
+            ILogger<CounterService> logger)
         {
-            this.filePath = configuration.GetSection("SaveFolder").Value;
+            this.saveSettings = settings.Value;
             this.logger = logger;
             this.dataProviderService = dataProviderService;
-            this.saveFileIntervalSeconds = GetSaveIntervalInSeconds(configuration.GetSection("SavePeriod").Value);
+            this.settings = settings;
+            this.saveFileIntervalSeconds = GetSaveIntervalInSeconds(this.saveSettings.SavePeriod);
             this.previousCountersList = Enumerable.Repeat(0, 8).ToList();
         }
 
@@ -46,15 +52,22 @@ namespace BitCounter.Services
             this.logger.LogInformation("Counter stopped.");
             return Task.CompletedTask;
         }
+
         private void StartCounting(object state)
         {
             var dataList = GetData();
             SaveData(dataList);
-        }
+        }   
 
         private void SaveData(List<CounterModel> dataList)
         {
-            var fileFullPath = this.filePath + "\\cnts_" + DateTime.Now.ToString("MM-dd-yyyy") + ".json";
+            var folderPath = this.saveSettings.SaveFolder;
+            if (!Directory.Exists(this.saveSettings.SaveFolder))
+            {
+                this.logger.LogWarning("Save folder does not exists. Folder path set to default project path.");
+                folderPath = Directory.GetCurrentDirectory();
+            }
+            var fileFullPath = folderPath + "\\cnts_" + DateTime.Now.ToString("MM-dd-yyyy") + ".json";
             this.logger.LogInformation("File full path is set to {0}.", fileFullPath);
             using (var file = File.AppendText(fileFullPath))
             {
@@ -64,32 +77,34 @@ namespace BitCounter.Services
             }
 
         }
-
-
+        
         private List<CounterModel> GetData()
         {
             var dataBatch = new List<CounterModel>();
-            var currentCountersList = this.previousCountersList;
+
             for (int i = 0; i < this.saveFileIntervalSeconds; i++)
             {
-                var randomByteString = this.dataProviderService.GetRandomByteAsString();
-                this.logger.LogInformation("Random byte generated : {0}", randomByteString);
-                var item = CreateModel(currentCountersList, randomByteString);
+                var randomByte = this.dataProviderService.GetRandomByte();
+                var randomByteAsString = this.dataProviderService.GetByteAsString(randomByte);
+                this.logger.LogInformation("Random byte generated : {0}", randomByteAsString);
+                var countersList = CountBits(randomByte);
+                var item = new CounterModel(randomByteAsString, countersList);
+                this.logger.LogInformation("Counter model created");
                 dataBatch.Add(item);
             }
             return dataBatch;
         }
 
-        private CounterModel CreateModel(List<int> currentCountersList, string randomByteString)
+        private List<int> CountBits(int randomByte)
         {
+            var currentCountersList = this.previousCountersList;
             for (int j = 0; j < 8; j++)
             {
-                currentCountersList[j] = this.previousCountersList[j] + Convert.ToInt32(randomByteString[7 - j].ToString());
+                currentCountersList[j] +=  randomByte & 1;
+                randomByte = randomByte >> 1;
             }
             this.previousCountersList = currentCountersList;
-            var item = new CounterModel(randomByteString, currentCountersList);
-            this.logger.LogInformation("Counter model created");
-            return item;
+            return currentCountersList;
         }
 
 

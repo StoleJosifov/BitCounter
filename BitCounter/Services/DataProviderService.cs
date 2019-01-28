@@ -26,11 +26,17 @@ namespace BitCounter.Services
             return data;
         }
 
-        public string GetRandomByteAsString()
+        public string GetByteAsString(int num)
+        {
+            var byteAsString = Convert.ToString(num, 2).PadLeft(8, '0');
+            return byteAsString;
+        }
+
+        public int GetRandomByte()
         {
             var rand = new Random();
-            var byteAsString = Convert.ToString(rand.Next(255), 2).PadLeft(8, '0');
-            return byteAsString;
+            var randomByte = rand.Next(255);
+            return randomByte;
         }
     }
 }

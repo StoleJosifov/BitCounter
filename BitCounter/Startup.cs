@@ -1,4 +1,5 @@
-﻿using BitCounter.Services;
+﻿using BitCounter.Models;
+using BitCounter.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -30,9 +31,9 @@ namespace BitCounter
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
             services.AddLogging();
+            services.Configure<SaveSettings>(options => Configuration.GetSection("SaveSettings").Bind(options));
             services.AddSingleton<IDataProviderService, DataProviderService>();
-            services.AddSingleton<IHostedService>(provider =>
-                    new CounterService(Configuration, provider.GetService<IDataProviderService>(), provider.GetService<ILogger<CounterService>>()));
+            services.AddSingleton<IHostedService, CounterService>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
